@@ -21,3 +21,44 @@ jobs:
 FROM ubuntu:20.04
 RUN apt-get -y update
 RUN apt-get -y install nginx
+
+
+# python
+FROM ubuntu:20.04
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.8 python3-pip && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN pip3 install nibabel pydicom matplotlib pillow
+RUN pip3 install med2image
+
+# R
+RUN apt-get update && apt-get install -y r-base
+
+
+# Copy the downloaded CPLEX Linux installer cplex_studio128.linux-x86-64.bin to the same location with cplex/Dockerfile.
+
+#docker image build -t cplex:12.8 -t cplex:12.8.0 .
+# docker images|grep cplex
+
+# add cplex
+
+FROM openjdk:8-jre
+
+COPY cplex_studio128.linux-x86-64.bin /cplex/cplex_studio128.linux-x86-64.bin
+COPY response.properties /cplex/response.properties
+
+RUN chmod u+x /cplex/cplex_studio128.linux-x86-64.bin
+RUN /cplex/cplex_studio128.linux-x86-64.bin -f /cplex/response.properties
+RUN rm -rf /cplex
+
+
+
+FROM cplex:12.8
+
+COPY src/ /app/
+
+WORKDIR /app
+
+ENTRYPOINT ["java","-Djava.library.path=/opt/ibm/ILOG/CPLEX_Studio128/cplex/bin/x86-64_linux","-cp",".:/opt/ibm/ILOG/CPLEX_Studio128/cplex/lib/cplex.jar","HelloCplex"]
+
+
